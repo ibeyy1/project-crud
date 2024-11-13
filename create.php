@@ -33,7 +33,6 @@
                     $font_size = htmlspecialchars(strip_tags($_POST['font_size']));
                     $text_subtitle = htmlspecialchars(strip_tags($_POST['text_subtitle']));
                     $subtitle_font_size = htmlspecialchars(strip_tags($_POST['subtitle_font_size']));
-                    $created_at = date('Y-m-d H:i:s');
 
                     $image = !empty($_FILES["image"]["name"])
                         ? time() . "_" . $_FILES["image"]["name"]
@@ -53,28 +52,61 @@
                     $stmt->bindParam(':text_subtitle', $text_subtitle);
                     $stmt->bindParam(':subtitle_font_size', $subtitle_font_size);
                     $stmt->bindParam(':created_at', $created_at);
+ // specify when this record was inserted to the database
+ $created_at = date('Y-m-d H:i:s');
+ $stmt->bindParam(':created_at', $created_at);
 
-                    if ($stmt->execute()) {
-                        echo "<div class='alert alert-success'>Record was saved.</div>";
-                        if ($image) {
-                            $check = getimagesize($_FILES["image"]["tmp_name"]);
-                            $allowed_file_types = array("jpg", "jpeg", "png", "gif");
-                            $file_type = pathinfo($image, PATHINFO_EXTENSION);
+ // Execute the query
+ if ($stmt->execute()) {
+     echo "<div class='alert alert-success'>Record was saved.</div>";
 
-                            if ($check === false || !in_array($file_type, $allowed_file_types) || $_FILES['image']['size'] > (1024000)) {
-                                echo "<div class='alert alert-danger'>Image must be a valid JPG, JPEG, PNG, or GIF file under 1 MB.</div>";
-                            } elseif (!move_uploaded_file($_FILES["image"]["tmp_name"], 'uploads/' . $image)) {
-                                echo "<div class='alert alert-danger'>Unable to upload photo.</div>";
-                            }
-                        }
-                    } else {
-                        echo "<div class='alert alert-danger'>Unable to save record.</div>";
-                        echo "<div class='alert alert-danger'>" . $stmt->errorInfo()[2] . "</div>";
-                    }
-                } catch (PDOException $exception) {
-                    die('ERROR: ' . $exception->getMessage());
-                }
-            }
+     // now, if image is not empty, try to upload the image
+     if ($image) {
+         // make sure that file is a real image
+         $check = getimagesize($_FILES["image"]["tmp_name"]);
+         if ($check !== false) {
+             echo "<div class='alert alert-success'>File is a valid image.</div>";
+         } else {
+             echo "<div class='alert alert-danger'>Submitted file is not an image.</div>";
+         }
+
+         // make sure certain file types are allowed
+         $allowed_file_types = array("jpg", "jpeg", "png", "gif");
+         $file_type = pathinfo($image, PATHINFO_EXTENSION);
+         if (in_array($file_type, $allowed_file_types)) {
+             echo "<div class='alert alert-success'>File type is allowed.</div>";
+         } else {
+             echo "<div class='alert alert-danger'>Only JPG, JPEG, PNG, GIF files are allowed.</div>";
+         }
+
+         // make sure submitted file is not too large, can't be larger than 1 MB
+         if ($_FILES['image']['size'] <= 1024000) {
+             echo "<div class='alert alert-success'>File size is within the limit.</div>";
+         } else {
+             echo "<div class='alert alert-danger'>Image must be less than 1 MB in size.</div>";
+         }
+
+         // make sure the 'uploads' folder exists
+         if (!is_dir('uploads')) {
+             mkdir('uploads', 0777, true);
+             echo "<div class='alert alert-success'>Uploads directory created.</div>";
+         }
+
+         // if no errors, try to upload the file
+         if (move_uploaded_file($_FILES["image"]["tmp_name"], 'uploads/' . $image)) {
+             echo "<div class='alert alert-success'>File uploaded successfully.</div>";
+             print_r(error_get_last());
+         } else {
+             echo "<div class='alert alert-danger'>Unable to upload photo.</div>";
+         }
+     }
+ } else {
+     echo "<div class='alert alert-danger'>Unable to save record.</div>";
+ }
+} catch (PDOException $exception) {
+ die('ERROR: ' . $exception->getMessage());
+}
+}            
         ?>
         
         <form id="contact_form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
@@ -112,15 +144,15 @@
         <tr>
             <td>X</td>
             <td><div class="form-group">
-                    <input type='text' name='x' class='form-control' placeholder='X' required />
+                    <input type='number' name='x' class='form-control' placeholder='X' required />
                     <div class="help-block"></div>
                 </div>
-            </td>
+            </td>  
         </tr>
         <tr>
             <td>Y</td>
             <td><div class="form-group">
-                    <input type='text' name='y' class='form-control' placeholder='Y' required />
+                    <input type='number' name='y' class='form-control' placeholder='Y' required />
                     <div class="help-block"></div>
                </div>
             </td>
@@ -128,7 +160,7 @@
         <tr>
             <td>Width</td>
             <td><div class="form-group">
-                    <input type='text' name='width' class='form-control' placeholder='Width' required />
+                    <input type='number' name='width' class='form-control' placeholder='Width' required />
                     <div class="help-block"></div>
                 </div>
             </td>
@@ -136,7 +168,7 @@
         <tr>
             <td>Height</td>
             <td> <div class="form-group">
-                    <input type='text' name='height' class='form-control' placeholder='Height' required />
+                    <input type='number' name='height' class='form-control' placeholder='Height' required />
                     <div class="help-block"></div>
                 </div>
             </td>
@@ -144,7 +176,7 @@
         <tr>
             <td>Radius</td>
             <td><div class="form-group">
-                     <input type='text' name='radius' class='form-control' placeholder='Radius' required />
+                     <input type='number' name='radius' class='form-control' placeholder='Radius' required />
                      <div class="help-block"></div>
                 </div>
             </td>
@@ -172,7 +204,7 @@
                     </div>
                     <div class="form-group">
                     <label>font size</label></br>
-                    <input type='text' name='font_size' class='form-control' placeholder='Font Size' />
+                    <input type='number' name='font_size' class='form-control' placeholder='Font Size' />
                     </fieldset>
                     <div class="help-block"></div>
                 </div>
@@ -189,7 +221,7 @@
                     </div>
                     <div class="form-group">
                     <label>font size</label></br>
-                    <input type='text' name='subtitle_font_size' class='form-control' placeholder='Subtitle Font Size'/>
+                    <input type='number' name='subtitle_font_size' class='form-control' placeholder='Subtitle Font Size'/>
                     <div class="help-block"></div>
                 </fieldset>
                 
@@ -208,11 +240,9 @@
             <!-- ... Your Form HTML ... -->
              
         </form>
-
-        <div id="success_message" style="display: none;">The form was submitted successfully!</div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-validator/0.5.3/js/bootstrapValidator.min.js"></script>
     <script>
@@ -238,6 +268,20 @@
                             }
                         }
                     },
+                    image: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Silakan unggah gambar'
+                        },
+                        file: {
+                            extension: 'jpeg,jpg,png,gif',
+                            type: 'image/jpeg,image/png,image/gif',
+                            maxSize: 1024 * 1024, // 1 MB
+                            message: 'File harus berupa gambar (jpeg, jpg, png, gif) dan ukuran maksimal 1 MB'
+                        }
+                    }
+                },
+            
                     x: {
                         validators: {
                             notEmpty: {
@@ -325,5 +369,6 @@
             });
         });
     </script>
+
 </body>
 </html>
